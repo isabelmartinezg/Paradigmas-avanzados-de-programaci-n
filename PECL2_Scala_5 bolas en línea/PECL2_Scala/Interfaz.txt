@@ -1,0 +1,885 @@
+import util.Random  
+import java.awt.Color
+import javax.swing.WindowConstants
+import java.awt.Dimension
+import javax.swing.{ImageIcon,JFrame,JLabel,JPanel,JButton}
+import java.awt.Image
+import javax.swing.BorderFactory
+import javax.swing.JTextField
+import java.awt.Font
+import java.io
+import java.awt.BorderLayout
+import java.awt.Dimension
+import javax.swing.JFrame
+import javax.swing.JScrollPane
+import javax.swing.JTextArea
+import javax.sound.sampled.Clip
+import javax.sound.sampled.AudioInputStream
+import javax.sound.sampled.AudioSystem
+import java.io.File
+import javax.swing.JOptionPane
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
+import java.awt.event.{ActionEvent, ActionListener}
+import java.util.{Calendar, Date}
+
+object interfaz {
+    def main(args: Array[String]) {
+      jugar(tableroInicializado,0,jFrame)
+  }
+  
+  val titulo = new JLabel() 
+  titulo.setSize(316,72)
+  titulo.setLocation(120,50)
+  val ImgTitulo = new ImageIcon("src/titulo.png")
+  val iconoTitulo = new ImageIcon(ImgTitulo.getImage().getScaledInstance(titulo.getWidth(),titulo.getHeight(),Image.SCALE_DEFAULT))
+  titulo.setIcon(iconoTitulo)
+  
+  val fondo = new JLabel() 
+  fondo.setSize(655,677)
+  val ImgFondo = new ImageIcon("src/fondo1.jpg")
+  val iconoFondo = new ImageIcon(ImgFondo.getImage().getScaledInstance(fondo.getWidth(),fondo.getHeight(),Image.SCALE_DEFAULT))
+  fondo.setIcon(iconoFondo)
+ 
+  val goodgame = new JLabel()
+  goodgame.setSize(550,550)
+  val ImgGG = new ImageIcon("src/goodgame.gif")
+  val iconoGG = new ImageIcon(ImgGG.getImage().getScaledInstance(goodgame.getWidth(),goodgame.getHeight(),Image.SCALE_DEFAULT))
+  goodgame.setIcon(iconoGG)
+  
+  val jFrame = new JFrame("5 BOLAS")
+  {
+    setLayout(null)
+    setResizable(false)
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+    setSize(new Dimension(655,677))
+    setLocationRelativeTo(null)
+  }
+    
+  val listaColores = List('A','N','R','V','M','G')
+  val dimension = 9
+  val tablero = generarTablero(dimension,List())
+  val tableroInicializado = inicializarTablero(tablero,9)
+  
+  def generarLista(nL: Int, lista: List[Char]): List[Char]= {
+    if (nL==0) lista
+    else generarLista(nL-1,'-'::lista) 
+  }
+  
+  def generarTablero(nL: Int, tablero: List[List[Char]]): List[List[Char]]= {
+    if (nL == 0) tablero
+    else generarLista(9,List())::generarTablero(nL-1,tablero)
+  }
+  
+  def getColor(columna:Int,listaColumna:List[Char]): Char={
+    if(columna==0) listaColumna.head
+    else getColor(columna-1,listaColumna.tail)
+  }
+
+  def getPosicion(fila: Int, columna: Int, tablero: List[List[Char]]): Char={
+    if(fila==0) getColor(columna,tablero.head)
+    else getPosicion(fila-1,columna,tablero.tail)
+  }
+  
+  def imprimirTablero(fila:Int, columna: Int, tablero: List[List[Char]]) {
+    if (fila==0 && columna==0) println("  0 1 2 3 4 5 6 7 8")
+    if (columna==0 && fila<9) print(fila+" ")
+    if (fila == 9) println("\n ")
+    else if (columna == 8) 
+    {
+      print(getPosicion(fila,columna,tablero) + "\n")
+      imprimirTablero(fila+1,0,tablero)
+    }
+    else
+    {
+      print(getPosicion(fila,columna,tablero) + " ")
+      imprimirTablero(fila,columna+1,tablero)
+    }
+  }
+  
+  def imprimirTableroInterfaz(fila:Int, columna: Int, tablero: List[List[Char]], movAutomatico: Tuple4[Int,Int,Int,Int], jFrame: JFrame): JFrame= {
+    if (fila>8) jFrame
+    else if (columna>8) imprimirTableroInterfaz(fila+1,0,tablero,movAutomatico,jFrame)
+    else
+    {
+      val jPanel = new JPanel()
+      {
+        setLayout(null)
+        setSize(50,50)
+        setLocation(110+columna*50,140+fila*50)
+        setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0), 1))
+        if (getPosicion(fila,columna,tablero)=='-')
+        {
+          val vacio = new JLabel() 
+          vacio.setSize(50,50)
+          add(vacio)
+        }else if (getPosicion(fila,columna,tablero)=='X')
+        {
+          val filaMovAutomatico = movAutomatico._1
+          val columnaMovAutomatico = movAutomatico._2
+          val colorMovAutomatico = getPosicion(filaMovAutomatico,columnaMovAutomatico,tablero)
+          if (colorMovAutomatico=='A')
+          {
+            val especialAmarillo = new JLabel() 
+            especialAmarillo.setSize(50,50)
+            val ImgEspecialAmarillo = new ImageIcon("src/especialAmarillo.png")
+            val iconoEspecialAmarillo = new ImageIcon(ImgEspecialAmarillo.getImage().getScaledInstance(especialAmarillo.getWidth(),especialAmarillo.getHeight(),Image.SCALE_DEFAULT))
+            especialAmarillo.setIcon(iconoEspecialAmarillo)
+            add(especialAmarillo)
+          }else if(colorMovAutomatico=='N')
+          {
+            val especialNaranja = new JLabel() 
+            especialNaranja.setSize(50,50)
+            val ImgEspecialNaranja = new ImageIcon("src/especialNaranja.png")
+            val iconoEspecialNaranja = new ImageIcon(ImgEspecialNaranja.getImage().getScaledInstance(especialNaranja.getWidth(),especialNaranja.getHeight(),Image.SCALE_DEFAULT))
+            especialNaranja.setIcon(iconoEspecialNaranja)
+            add(especialNaranja)
+          }else if(colorMovAutomatico=='R')
+          {
+            val especialRojo = new JLabel() 
+            especialRojo.setSize(50,50)
+            val ImgEspecialRojo = new ImageIcon("src/especialRojo.png")
+            val iconoEspecialRojo = new ImageIcon(ImgEspecialRojo.getImage().getScaledInstance(especialRojo.getWidth(),especialRojo.getHeight(),Image.SCALE_DEFAULT))
+            especialRojo.setIcon(iconoEspecialRojo)
+            add(especialRojo)
+          }else if (colorMovAutomatico=='V') 
+          {
+            val especialVerde = new JLabel() 
+            especialVerde.setSize(50,50)
+            val ImgEspecialVerde = new ImageIcon("src/especialVerde.png")
+            val iconoEspecialVerde = new ImageIcon(ImgEspecialVerde.getImage().getScaledInstance(especialVerde.getWidth(),especialVerde.getHeight(),Image.SCALE_DEFAULT))
+            especialVerde.setIcon(iconoEspecialVerde)  
+            add(especialVerde)
+          }else if (colorMovAutomatico=='M') 
+          {
+            val especialMorado = new JLabel() 
+            especialMorado.setSize(50,50)
+            especialMorado.setBackground(Color.BLACK)
+            val ImgEspecialMorado = new ImageIcon("src/especialMorado.png")
+            val iconoEspecialMorado = new ImageIcon(ImgEspecialMorado.getImage().getScaledInstance(especialMorado.getWidth(),especialMorado.getHeight(),Image.SCALE_DEFAULT))
+            especialMorado.setIcon(iconoEspecialMorado)   
+            add(especialMorado)
+          }
+          else
+          {
+            val especialGris = new JLabel() 
+            especialGris.setSize(50,50)
+            especialGris.setBackground(Color.BLACK)
+            val ImgEspecialGris = new ImageIcon("src/especialGris.png")
+            val iconoEspecialGris = new ImageIcon(ImgEspecialGris.getImage().getScaledInstance(especialGris.getWidth(),especialGris.getHeight(),Image.SCALE_DEFAULT))
+            especialGris.setIcon(iconoEspecialGris)   
+            add(especialGris)
+          }
+        }else if (getPosicion(fila,columna,tablero)=='A')
+        {
+          val amarillo = new JLabel() 
+          amarillo.setSize(50,50)
+          val ImgAmarillo = new ImageIcon("src/amarillo.png")
+          val iconoAmarillo = new ImageIcon(ImgAmarillo.getImage().getScaledInstance(amarillo.getWidth(),amarillo.getHeight(),Image.SCALE_DEFAULT))
+          amarillo.setIcon(iconoAmarillo)
+          add(amarillo)
+        }
+        else if (getPosicion(fila,columna,tablero)=='N')
+        {
+          val naranja = new JLabel() 
+          naranja.setSize(50,50)
+          val ImgNaranja = new ImageIcon("src/naranja.png")
+          val iconoNaranja = new ImageIcon(ImgNaranja.getImage().getScaledInstance(naranja.getWidth(),naranja.getHeight(),Image.SCALE_DEFAULT))
+          naranja.setIcon(iconoNaranja)
+          add(naranja)
+        }
+        else if (getPosicion(fila,columna,tablero)=='R')
+        {
+          val rojo = new JLabel() 
+          rojo.setSize(50,50)
+          val ImgRojo = new ImageIcon("src/rojo.png")
+          val iconoRojo = new ImageIcon(ImgRojo.getImage().getScaledInstance(rojo.getWidth(),rojo.getHeight(),Image.SCALE_DEFAULT))
+          rojo.setIcon(iconoRojo)
+          add(rojo)
+        }
+        else if (getPosicion(fila,columna,tablero)=='V') 
+        {
+          val verde = new JLabel() 
+          verde.setSize(50,50)
+          val ImgVerde = new ImageIcon("src/verde.png")
+          val iconoVerde = new ImageIcon(ImgVerde.getImage().getScaledInstance(verde.getWidth(),verde.getHeight(),Image.SCALE_DEFAULT))
+          verde.setIcon(iconoVerde)  
+          add(verde)
+        }
+        else if (getPosicion(fila,columna,tablero)=='M') 
+        {
+          val morado = new JLabel() 
+          morado.setSize(50,50)
+          morado.setBackground(Color.BLACK)
+          val ImgMorado = new ImageIcon("src/morado.png")
+          val iconoMorado = new ImageIcon(ImgMorado.getImage().getScaledInstance(morado.getWidth(),morado.getHeight(),Image.SCALE_DEFAULT))
+          morado.setIcon(iconoMorado)   
+          add(morado)
+        }
+        else
+        {
+          val gris = new JLabel() 
+          gris.setSize(50,50)
+          gris.setBackground(Color.BLACK)
+          val ImgGris = new ImageIcon("src/gris.png")
+          val iconoGris = new ImageIcon(ImgGris.getImage().getScaledInstance(gris.getWidth(),gris.getHeight(),Image.SCALE_DEFAULT))
+          gris.setIcon(iconoGris)   
+          add(gris)
+        }
+      }
+      jFrame.add(jPanel)
+      imprimirTableroInterfaz(fila,columna+1,tablero,movAutomatico,jFrame)
+    }
+  }
+  
+  def insertarBola(lista: List[Char], pos: Int, elem: Char): List[Char]= {
+    if(pos == 0) elem::lista.tail
+    else lista.head::insertarBola(lista.tail,pos-1,elem)
+  }
+
+  def insertarBolaTablero(tablero: List[List[Char]], fila: Int, columna: Int, elem: Char): List[List[Char]]= {
+    if(fila == 0) insertarBola(tablero.head,columna,elem)::tablero.tail
+    else tablero.head::insertarBolaTablero(tablero.tail,fila-1,columna,elem)
+  }
+  
+  def inicializarTablero(tablero: List[List[Char]], num: Int): List[List[Char]]= {
+    if (num == 0) tablero
+    else 
+    {
+      val rand = Random.nextInt(6)
+      val color = listaColores(rand)
+      val fila = Random.nextInt(9)
+      val columna = Random.nextInt(9)
+      if (getPosicion(fila,columna,tablero) == '-') inicializarTablero(insertarBolaTablero(tablero,fila,columna,color),num-1)
+      else inicializarTablero(tablero,num)
+    }
+  }
+  
+  def eliminarBola(lista: List[Char], pos: Int): List[Char]= {
+    if(pos==0) '-'::lista.tail
+    else lista.head::eliminarBola(lista.tail,pos-1)
+  }
+  
+  def eliminarBolaTablero(tablero: List[List[Char]], fila: Int, columna: Int): List[List[Char]]= {
+    if(fila == 0) eliminarBola(tablero.head,columna)::tablero.tail
+    else tablero.head::eliminarBolaTablero(tablero.tail,fila-1,columna)
+  }
+  
+  def validarNumero(num: Int): Boolean= {
+    if(num<0 || num>8) false
+    else true
+  }
+  
+  def pedirFila(): Int= {
+    println("Fila: ")
+    try 
+    {
+      val fila = scala.io.StdIn.readInt()
+      if(validarNumero(fila)) fila
+      else 
+      {
+        println("Error al introducir el numero de fila. Por favor, introduzca un numero del 0 al 8.")
+        pedirFila()
+      }
+    }catch 
+    {
+      case r: Exception => {
+        println("Error. Por favor, introduzca un numero del 0 al 8.")
+        pedirFila()
+      }
+    }
+  } 
+  
+  def pedirColumna(): Int= {
+    println("Columna: ")
+    try 
+    {
+      val columna = scala.io.StdIn.readInt()
+      if(validarNumero(columna)) columna
+      else 
+      {
+        println("Error al introducir el numero de columna. Por favor, introduzca un numero del 0 al 8.")
+        pedirColumna()
+      }
+    }catch 
+    {
+      case r: Exception => {
+        println("Error. Por favor, introduzca un numero del 0 al 8.")
+        pedirColumna()
+      }
+    }
+  }  
+
+  def moverBola (tablero: List[List[Char]], puntos: Int, jFram: JFrame): Tuple2[List[List[Char]],Int]= {
+    println("Introduzca los datos de la bola a mover")
+    val fila1 = pedirFila()
+    val columna1 = pedirColumna()
+    val elem = getPosicion(fila1,columna1,tablero)
+    if(comprobarEleccion(fila1,columna1,tablero))
+    {
+      println("Introduzca los datos de la posicion donde la quieras poner")
+      val fila2 = pedirFila()
+      val columna2 = pedirColumna()
+      if (comprobarMovimiento(fila2,columna2,tablero))
+      {
+        val tableroAux = eliminarBolaTablero(tablero,fila1,columna1)
+        val tableroAux2 = insertarBolaTablero(tableroAux,fila2,columna2,elem)
+        val posicionesAEliminar = comprobarTablero(fila2,columna2,tableroAux2,elem,0,Nil)
+        val puntosAux = contarPuntos(posicionesAEliminar,puntos)
+        if (posicionesAEliminar==Nil)
+        {
+          if (numHuecosLibres(0,0,tableroAux2,0)==1)
+          {
+            val tableroAux3 = inicializarTablero(tableroAux2,1) 
+            (tableroAux3,puntosAux)
+          }
+          else if (numHuecosLibres(0,0,tableroAux2,0)==2)
+          {
+            val tableroAux3 = inicializarTablero(tableroAux2,2) 
+            (tableroAux3,puntosAux)
+          }
+          else 
+          {
+            val tableroAux3 = inicializarTablero(tableroAux2,3) 
+            (tableroAux3,puntosAux)
+          }
+        }
+        else 
+        {
+          val tableroAux3 = eliminarPosiciones(tableroAux2,posicionesAEliminar)
+          val audioInputStream = AudioSystem.getAudioInputStream(new File("src/sonido.wav"))
+          val clip=AudioSystem.getClip()
+          clip.open(audioInputStream)
+          clip.start()
+          (tableroAux3,puntosAux)
+        }
+      }else
+      {
+        println("Movimiento erroneo. Existe una bola en la posicion elegida.")
+        JOptionPane.showMessageDialog(jFram,"Movimiento erroneo. La posicion esta ocupada por otra bola.","Mensaje de error",JOptionPane.ERROR_MESSAGE)
+        println("Por favor, vuelve a introducir los datos")
+        moverBola(tablero,puntos,jFram)
+      }
+    }
+    else 
+    {
+      println("Movimiento erroneo. Has seleccionado una posicion vacia.")
+      JOptionPane.showMessageDialog(jFram,"Movimiento erroneo. Has seleccionado una posicion vacia.","Mensaje de error",JOptionPane.ERROR_MESSAGE);
+      println("Por favor, vuelve a introducir los datos")
+      moverBola(tablero,puntos,jFram)
+    }
+  }
+  
+  def member(posicionesEliminadas: List[List[Int]], posicion: List[Int]): Boolean= {
+    if(posicionesEliminadas == List()) false
+    else if(posicion == posicionesEliminadas.head) true
+    else member(posicionesEliminadas.tail,posicion)
+  }
+  
+  def comprobarIzq(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (columna<0) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else
+      comprobarIzq(fila,columna-1,tablero,color,cont+1)
+  }
+  
+  def comprobarDcha(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (columna>8) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else comprobarDcha(fila,columna+1,tablero,color,cont+1)
+  }
+  
+  def comprobarLineaHorizontal(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Boolean= {
+    val contIzq = comprobarIzq(fila,columna-1,tablero,color,cont)
+    val contDcha = comprobarDcha(fila,columna+1,tablero,color,cont)
+    if (contIzq+contDcha+1 >=5) true
+    else false
+  }
+  
+  def comprobarArriba(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila<0) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else comprobarArriba(fila-1,columna,tablero,color,cont+1)
+  }
+    
+  def comprobarAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila>8) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else comprobarAbajo(fila+1,columna,tablero,color,cont+1)
+  }
+
+  def comprobarLineaVertical(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Boolean= {
+    val contArriba = comprobarArriba(fila-1,columna,tablero,color,cont)
+    val contAbajo = comprobarAbajo(fila+1,columna,tablero,color,cont)
+    if (contArriba+contAbajo+1 >=5) true
+    else false
+  }
+  
+  def comprobarDiagonalDchaArriba(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila<0 || columna>8) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else
+    {
+      if (cont%2==0) comprobarDiagonalDchaArriba(fila,columna+1,tablero,color,cont+1)
+      else comprobarDiagonalDchaArriba(fila-1,columna,tablero,color,cont+1)
+    }
+  }
+  
+  def comprobarDiagonalIzqAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila>8 || columna<0) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else 
+    {
+      if (cont%2==0) comprobarDiagonalIzqAbajo(fila,columna-1,tablero,color,cont+1)
+      else comprobarDiagonalIzqAbajo(fila+1,columna,tablero,color,cont+1)
+    }
+  }
+  
+  def comprobarDiagonalIzqArriba(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila<0 || columna<0) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else 
+    {
+      if (cont%2==0) comprobarDiagonalIzqArriba(fila,columna-1,tablero,color,cont+1)
+      else comprobarDiagonalIzqArriba(fila-1,columna,tablero,color,cont+1)
+    }
+  }
+
+  def comprobarDiagonalDchaAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila>8 || columna>8) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else 
+    {
+      if (cont%2==0) comprobarDiagonalDchaAbajo(fila,columna+1,tablero,color,cont+1)
+      else comprobarDiagonalDchaAbajo(fila+1,columna,tablero,color,cont+1)
+    }
+  }
+   
+  def comprobarDiagonalDerecha(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Boolean= {
+    val contDchaArriba = comprobarDiagonalDchaArriba(fila,columna,tablero,color,0)
+    val contIzqAbajo = comprobarDiagonalIzqAbajo(fila,columna,tablero,color,0)
+    if (contDchaArriba+contIzqAbajo-1>=5) true
+    else false
+  }
+
+  def comprobarDiagonalIzquierda(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Boolean= {
+    val contDchaAbajo = comprobarDiagonalDchaAbajo(fila,columna,tablero,color,0)
+    val contIzqArriba = comprobarDiagonalIzqArriba(fila,columna,tablero,color,0)
+    if (contDchaAbajo+contIzqArriba-1>=5) true
+    else false
+  }
+  
+  def eliminarIzquierda(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (columna<0) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else 
+    {
+      if (member(posicionesEliminadas,List(fila,columna))) eliminarIzquierda(fila,columna-1,tablero,color,posicionesEliminadas)
+      else eliminarIzquierda(fila,columna-1,tablero,color,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+  def eliminarDerecha(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (columna>8) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else 
+    {
+      if (member(posicionesEliminadas,List(fila,columna))) eliminarDerecha(fila,columna+1,tablero,color,posicionesEliminadas)
+      else eliminarDerecha(fila,columna+1,tablero,color,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+ 
+  def comprobarDiagonalDchaAux(fila: Int, columna: Int, tablero: List[List[Char]], color:Char): Tuple3[Boolean,Int,Int]= {
+    if (fila>8) (false,-1,-1)
+    else if (columna>8) comprobarDiagonalDchaAux(fila+1,0,tablero,color)
+    else if (getPosicion(fila,columna,tablero)!=color) comprobarDiagonalDchaAux(fila,columna+1,tablero,color)
+    else 
+    {
+      if(comprobarDiagonalDerecha(fila,columna,tablero,color,0)) (true,fila,columna)
+      else comprobarDiagonalDchaAux(fila,columna+1,tablero,color)
+    }
+  }
+  
+  def comprobarDiagonalIzqAux(fila: Int, columna: Int, tablero: List[List[Char]], color:Char): Tuple3[Boolean,Int,Int]= {
+    if (fila>8) (false,-1,-1)
+    else if (columna>8) comprobarDiagonalIzqAux(fila+1,0,tablero,color)
+    else if (getPosicion(fila,columna,tablero)!=color) comprobarDiagonalIzqAux(fila,columna+1,tablero,color)
+    else 
+    {
+      if(comprobarDiagonalIzquierda(fila,columna,tablero,color,0)) (true,fila,columna)
+      else comprobarDiagonalIzqAux(fila,columna+1,tablero,color)
+    }
+  }
+  
+  def eliminarLineaHorizontal(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    val ListaIzq = eliminarIzquierda(fila,columna,tablero,color,posicionesEliminadas)
+    val ListaDcha = eliminarDerecha(fila,columna+1,tablero,color,posicionesEliminadas)
+    ListaIzq:::ListaDcha
+  }
+  
+  def eliminarArriba(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila<0) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (member(posicionesEliminadas,List(fila,columna))) eliminarArriba(fila-1,columna,tablero,color,posicionesEliminadas)
+      else eliminarArriba(fila-1,columna,tablero,color,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+  def eliminarAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila>8) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else 
+    {
+      if (member(posicionesEliminadas,List(fila,columna))) eliminarAbajo(fila+1,columna,tablero,color,posicionesEliminadas)
+      else eliminarAbajo(fila+1,columna,tablero,color,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+
+  def eliminarLineaVertical(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    val ListaArriba = eliminarArriba(fila,columna,tablero,color,posicionesEliminadas)
+    val ListaAbajo = eliminarAbajo(fila+1,columna,tablero,color,posicionesEliminadas)
+    ListaArriba:::ListaAbajo
+  }
+  
+  
+  def eliminarDiagonalDchaArriba(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila<0 || columna>8) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (cont%2==0)
+      {
+        if (member(posicionesEliminadas,List(fila,columna))) eliminarDiagonalDchaArriba(fila,columna+1,tablero,color,cont+1,posicionesEliminadas)
+        else eliminarDiagonalDchaArriba(fila,columna+1,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+      else eliminarDiagonalDchaArriba(fila-1,columna,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+  }
+  
+
+  def eliminarDiagonalIzqAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila>8 || columna<0) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (cont%2==0)
+      {
+        if (member(posicionesEliminadas,List(fila,columna))) eliminarDiagonalIzqAbajo(fila+1,columna,tablero,color,cont+1,posicionesEliminadas)
+        else eliminarDiagonalIzqAbajo(fila+1,columna,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+      else eliminarDiagonalIzqAbajo(fila,columna-1,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+
+
+  def eliminarDiagonalDerecha(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    val ListaDchaArriba = eliminarDiagonalDchaArriba(fila,columna,tablero,color,0,posicionesEliminadas)
+    val ListaDiagonalDerecha = eliminarDiagonalIzqAbajo(fila,columna,tablero,color,0,ListaDchaArriba)
+    ListaDiagonalDerecha
+  }
+  
+  
+  def eliminarDiagonalIzqArriba(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila<0 || columna<0) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (cont%2==0)
+      {
+        if (member(posicionesEliminadas,List(fila,columna))) eliminarDiagonalIzqArriba(fila,columna-1,tablero,color,cont+1,posicionesEliminadas)
+        else eliminarDiagonalIzqArriba(fila,columna-1,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+      else eliminarDiagonalIzqArriba(fila-1,columna,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+ 
+  
+  def eliminarDiagonalDchaAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila>8 || columna>8) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (cont%2==0) 
+      {
+        if (member(posicionesEliminadas,List(fila,columna))) eliminarDiagonalDchaAbajo(fila+1,columna,tablero,color,cont+1,posicionesEliminadas)
+        else eliminarDiagonalDchaAbajo(fila+1,columna,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+      else eliminarDiagonalDchaAbajo(fila,columna+1,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+  
+  def eliminarDiagonalIzquierda(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    val ListaDchaAbajo = eliminarDiagonalDchaAbajo(fila,columna,tablero,color,0,posicionesEliminadas)
+    val ListaDiagonalIzquierda = eliminarDiagonalIzqArriba(fila,columna,tablero,color,0,ListaDchaAbajo)
+    ListaDiagonalIzquierda
+  }
+
+  
+  def comprobarTablero(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if(cont==4) posicionesEliminadas
+    else
+    {
+      if (cont==0) 
+      {
+        if (comprobarLineaHorizontal(fila,columna,tablero,color,0)) comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas:::eliminarLineaHorizontal(fila,columna,tablero,color,Nil))
+        else comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas)
+      }
+      else if (cont==1)
+      {
+        if (comprobarLineaVertical(fila,columna,tablero,color,0)) comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas:::eliminarLineaVertical(fila,columna,tablero,color,Nil))
+        else comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas)
+      }
+      else if (cont==2)
+      {
+        val diagonal = comprobarDiagonalDchaAux(0,0,tablero,color)
+        if (diagonal._1) comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas:::eliminarDiagonalDerecha(diagonal._2,diagonal._3,tablero,color,Nil))
+        else comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas)
+      }
+      else 
+      {
+        val diagonal = comprobarDiagonalIzqAux(0,0,tablero,color)
+        if (diagonal._1) comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas:::eliminarDiagonalIzquierda(diagonal._2,diagonal._3,tablero,color,Nil))
+        else comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas)
+      }
+    } 
+  }
+  
+  def eliminarPosiciones(tablero: List[List[Char]], posicionesEliminadas:List[List[Int]]): List[List[Char]] = {
+    if (posicionesEliminadas == Nil) tablero
+    else 
+    {
+      val fila = posicionesEliminadas.head.head
+      val columna = posicionesEliminadas.head.tail.head
+      eliminarPosiciones(eliminarBolaTablero(tablero,fila,columna),posicionesEliminadas.tail)
+    }
+  }
+  
+  def contarPuntos(posicionesEliminadas: List[List[Int]], puntos: Int): Int= {
+    if (posicionesEliminadas == Nil) puntos
+    else 
+    {
+      val fila = posicionesEliminadas.head.head
+      val columna = posicionesEliminadas.head.tail.head
+      contarPuntos(posicionesEliminadas.tail,puntos+75)
+    }
+  }
+  
+  def numHuecosLibres(fila: Int, columna: Int, tablero: List[List[Char]], cont: Int): Int= {
+    if (fila>8) cont
+    else if (getPosicion(fila,columna,tablero)=='-')
+    {
+      if (columna!=8) numHuecosLibres(fila,columna+1,tablero,cont+1)
+      else numHuecosLibres(fila+1,0,tablero,cont+1)
+    }
+    else 
+    {
+      if (columna!=8) numHuecosLibres(fila,columna+1,tablero,cont)
+      else numHuecosLibres(fila+1,0,tablero,cont)
+    }
+  }
+  
+  def hayHuecosLibres(cont: Int): Boolean= {
+    if (cont>0) true
+    else false
+  }
+  
+  def comprobarMovimiento(fila: Int, columna: Int, tablero: List[List[Char]]): Boolean= {
+    if(getPosicion(fila,columna,tablero)!='-') false
+    else true
+  }
+
+  def comprobarEleccion(fila: Int, columna: Int, tablero: List[List[Char]]): Boolean= {
+    if(getPosicion(fila,columna,tablero)=='-') false
+    else true
+  }
+  
+  def getFecha(): String= {
+    val cal = Calendar.getInstance()
+    val date =cal.get(Calendar.DATE)
+    val Year =cal.get(Calendar.YEAR)
+    val Month1 =cal.get(Calendar.MONTH)
+    val Month = Month1+1
+    String.valueOf(date+"/"+Month+"/"+Year)
+  }
+
+  def almacenarPuntosTxt(puntos: Int)= {
+   try 
+   {
+      val ruta = "src/puntos.txt"
+      val file = new File(ruta)
+      if (!file.exists()) {
+          file.createNewFile()
+          print("Creando file")
+      }
+      val fw = new FileWriter(file,true)
+      val bw = new BufferedWriter(fw)
+      val fecha = getFecha()
+      bw.write(fecha+" --> "+puntos.toString()+" puntos\n")
+      bw.close()
+   }catch 
+   {
+     case r: Exception => {
+       println("No se ha encontrado la ruta del archivo.")
+     }
+   }
+ } 
+  
+  def moverBolaAutomatico (fila1: Int, columna1: Int, fila2: Int, columna2: Int, tablero: List[List[Char]], puntos: Int): Int= {
+    val elem = getPosicion(fila1,columna1,tablero)
+    val tableroAux = eliminarBolaTablero(tablero,fila1,columna1)
+    val tableroAux2 = insertarBolaTablero(tableroAux,fila2,columna2,elem)
+    val posicionesAEliminar = comprobarTablero(fila2,columna2,tableroAux2,elem,0,Nil)
+    contarPuntos(posicionesAEliminar,puntos)
+  }
+  
+  def comprobarBola(fila: Int, columna: Int, fila2: Int, columna2: Int, mejorFila2: Int, mejorColumna2: Int, mejorPuntuacion: Int, tablero: List[List[Char]]): Tuple3[Int,Int,Int]= {
+    if (fila2>8) (mejorFila2,mejorColumna2,mejorPuntuacion)
+    else if (columna2>8)  comprobarBola(fila,columna,fila2+1,0,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    else if (getPosicion(fila2,columna2,tablero)!='-') comprobarBola(fila,columna,fila2,columna2+1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    else 
+    {
+      val puntos = moverBolaAutomatico(fila,columna,fila2,columna2,tablero,0)
+      if (puntos>mejorPuntuacion) comprobarBola(fila,columna,fila2,columna2+1,fila2,columna2,puntos,tablero)
+      else comprobarBola(fila,columna,fila2,columna2+1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    }
+  }
+  
+  def mejorFilaColumna(fila: Int, columna: Int, mejorFila1: Int, mejorColumna1: Int, mejorFila2: Int, mejorColumna2: Int, mejorPuntuacion: Int, tablero: List[List[Char]]): Tuple4[Int,Int,Int,Int]= {
+    if (fila>8) (mejorFila1,mejorColumna1,mejorFila2,mejorColumna2)
+    else if (columna>8) mejorFilaColumna(fila+1,0,mejorFila1,mejorColumna1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    else if (getPosicion(fila,columna,tablero)=='-') mejorFilaColumna(fila,columna+1,mejorFila1,mejorColumna1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    else 
+    {
+      val movimiento = comprobarBola(fila,columna,0,0,mejorFila2,mejorColumna2,-1,tablero)
+      if (movimiento._3>mejorPuntuacion) mejorFilaColumna(fila,columna+1,fila,columna,movimiento._1,movimiento._2,movimiento._3,tablero)
+      else mejorFilaColumna(fila,columna+1,mejorFila1,mejorColumna1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    }
+  }
+ 
+ def jButtonGuardarPuntos(puntos: Int): JButton ={
+   val botonPuntos = new JButton()
+   {
+     setSize(100,20)
+     setLocation(10,40)
+     setBackground(Color.BLACK)
+     setFont(new java.awt.Font("Modern No. 20", 5, 14))
+     setForeground(Color.WHITE)
+     setText("Guardar puntos");
+     setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0), 1))
+     addActionListener(new ActionListener {
+       def actionPerformed(e: ActionEvent): Unit ={
+          almacenarPuntosTxt(puntos)
+       }
+     })
+   }
+   botonPuntos
+ }
+ 
+ def jButtonSalir(): JButton ={
+   val botonSalir = new JButton()
+   {
+     setSize(100,20)
+     setLocation(10,70)
+     setBackground(Color.BLACK)
+     setFont(new java.awt.Font("Modern No. 20", 5, 14))
+     setForeground(Color.WHITE)
+     setText("Salir");
+     setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0), 1))
+     addActionListener(new ActionListener {
+       def actionPerformed(e: ActionEvent): Unit ={
+           System.exit(0)
+       }
+     })
+   }
+   botonSalir
+ }
+ 
+ def jButtonNuevaPartida(fram: JFrame): JButton ={
+   val botonNuevaPartida = new JButton()
+   {
+     setSize(100,20)
+     setLocation(10,100)
+     setBackground(Color.BLACK)
+     setFont(new java.awt.Font("Modern No. 20", 5, 14))
+     setForeground(Color.WHITE)
+     setText("Nueva Partida")
+     setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0), 1))
+     addActionListener(new ActionListener {
+       def actionPerformed(e: ActionEvent): Unit ={
+         
+       }
+     })
+   }
+   botonNuevaPartida
+ }
+ 
+ def jLabelContadorPuntos(puntos: Int): JLabel= {
+   val jLabelPuntos = new JLabel()
+   {
+     setSize(150,30)
+     setLocation(470,85)
+     setText("PUNTOS "+String.valueOf(puntos))
+     setFont(new java.awt.Font("Modern No. 20", 5, 25))
+     setBackground(Color.BLACK)
+   }
+   jLabelPuntos
+ }
+ 
+  def jugar(tablero: List[List[Char]], puntos: Int, frame: JFrame) {
+    if(hayHuecosLibres(numHuecosLibres(0,0,tablero,0)))
+    {
+      val movAutomatico = mejorFilaColumna(0,0,-1,-1,-1,-1,-1,tablero)
+      val tableroAux = insertarBolaTablero(tablero,movAutomatico._3,movAutomatico._4,'X')
+      imprimirTablero(0,0,tableroAux)
+      print("El mejor movimiento es mover la bola de la posicion ("+movAutomatico._1+","+movAutomatico._2+")")
+      println(" a la posicion ("+movAutomatico._3+","+movAutomatico._4+")\n")
+      val jFrameAux = new JFrame("5 BOLAS")
+      {
+        setLayout(null)
+        setResizable(false)
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+        setSize(new Dimension(655,677))
+        setLocationRelativeTo(null)
+        val jLabelPuntos = jLabelContadorPuntos(puntos)
+        val botonPuntos = jButtonGuardarPuntos(puntos)
+        val botonSalir = jButtonSalir()
+        val botonNuevaPartida = jButtonNuevaPartida(frame)
+        add(jLabelPuntos)
+        add(titulo)
+        add(botonPuntos)
+        add(botonSalir)
+        add(botonNuevaPartida)
+      }  
+      val jFrameAux2 = imprimirTableroInterfaz(0,0,tableroAux,movAutomatico,jFrameAux)
+      jFrameAux2.add(fondo)
+      jFrameAux2.setVisible(true)
+      jFrameAux2.setAlwaysOnTop(true)
+      frame.setVisible(false)
+      val mover = moverBola(tablero,puntos,jFrameAux2)
+      val tableroAux2 = mover._1
+      val puntosAux = mover._2
+      println("PUNTOS JUGADOR : "+puntosAux)
+      if (getPosicion(movAutomatico._3,movAutomatico._4,tableroAux2)=='X') 
+      {
+        val tableroAux3 = eliminarBolaTablero(tableroAux2,movAutomatico._3,movAutomatico._4)
+        jugar(tableroAux3,puntosAux,jFrameAux2)
+      }
+      jugar(tableroAux2,puntosAux,jFrameAux2)
+    }
+    else 
+    {
+      almacenarPuntosTxt(puntos)
+      print("Game Over") 
+      jFrame.setSize(550,550)
+      jFrame.setVisible(true)
+      jFrame.add(goodgame)     
+    }
+  }  
+ 
+}

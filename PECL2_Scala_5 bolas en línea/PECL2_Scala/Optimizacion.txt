@@ -1,0 +1,574 @@
+import util.Random  
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.{Calendar, Date}
+
+object Optimizacion {
+  def main(args: Array[String]) {
+    jugar(tableroInicializado,0)
+  }
+ 
+  val listaColores = List('A','N','R','V','M','G')
+  val dimension = 9
+  val tablero = generarTablero(dimension,List())
+  val tableroInicializado = inicializarTablero(tablero,9)
+  
+  def generarLista(nL: Int, lista: List[Char]): List[Char]= {
+    if (nL==0) lista
+    else generarLista(nL-1,'-'::lista) 
+  }
+  
+  def generarTablero(nL: Int, tablero: List[List[Char]]): List[List[Char]]= {
+    if (nL == 0) tablero
+    else generarLista(9,List())::generarTablero(nL-1,tablero)
+  }
+  
+  def getColor(columna:Int,listaColumna:List[Char]): Char={
+    if(columna==0) listaColumna.head
+    else getColor(columna-1,listaColumna.tail)
+  }
+
+  def getPosicion(fila: Int, columna: Int, tablero: List[List[Char]]): Char={
+    if(fila==0) getColor(columna,tablero.head)
+    else getPosicion(fila-1,columna,tablero.tail)
+  }
+  
+  def imprimirTablero(fila:Int, columna: Int, tablero: List[List[Char]]) {
+    if (fila==0 && columna==0) println("  0 1 2 3 4 5 6 7 8")
+    if (columna==0 && fila<9) print(fila+" ")
+    if (fila == 9) println("\n ")
+    else if (columna == 8) 
+    {
+      print(getPosicion(fila,columna,tablero) + "\n")
+      imprimirTablero(fila+1,0,tablero)
+    }
+    else
+    {
+      print(getPosicion(fila,columna,tablero) + " ")
+      imprimirTablero(fila,columna+1,tablero)
+    }
+  }
+
+  def insertarBola(lista: List[Char], pos: Int, elem: Char): List[Char]= {
+    if(pos == 0) elem::lista.tail
+    else lista.head::insertarBola(lista.tail,pos-1,elem)
+  }
+
+  def insertarBolaTablero(tablero: List[List[Char]], fila: Int, columna: Int, elem: Char): List[List[Char]]= {
+    if(fila == 0) insertarBola(tablero.head,columna,elem)::tablero.tail
+    else tablero.head::insertarBolaTablero(tablero.tail,fila-1,columna,elem)
+  }
+  
+  def inicializarTablero(tablero: List[List[Char]], num: Int): List[List[Char]]= {
+    if (num == 0) tablero
+    else 
+    {
+      val rand = Random.nextInt(6)
+      val color = listaColores(rand)
+      val fila = Random.nextInt(9)
+      val columna = Random.nextInt(9)
+      if (getPosicion(fila,columna,tablero) == '-') inicializarTablero(insertarBolaTablero(tablero,fila,columna,color),num-1)
+      else inicializarTablero(tablero,num)
+    }
+  }
+  
+  def eliminarBola(lista: List[Char], pos: Int): List[Char]= {
+    if(pos==0) '-'::lista.tail
+    else lista.head::eliminarBola(lista.tail,pos-1)
+  }
+  
+  def eliminarBolaTablero(tablero: List[List[Char]], fila: Int, columna: Int): List[List[Char]]= {
+    if(fila == 0) eliminarBola(tablero.head,columna)::tablero.tail
+    else tablero.head::eliminarBolaTablero(tablero.tail,fila-1,columna)
+  }
+ 
+  def validarNumero(num: Int): Boolean= {
+    if(num<0 || num>8) false
+    else true
+  }
+  
+  def pedirFila(): Int= {
+    println("Fila: ")
+    try 
+    {
+      val fila = scala.io.StdIn.readInt()
+      if(validarNumero(fila)) fila
+      else 
+      {
+        println("Error al introducir el numero de fila. Por favor, introduzca un numero del 0 al 8.")
+        pedirFila()
+      }
+    }catch 
+    {
+      case r: Exception => {
+        println("Error. Por favor, introduzca un numero del 0 al 8.")
+        pedirFila()
+      }
+    }
+  } 
+  
+  def pedirColumna(): Int= {
+    println("Columna: ")
+    try 
+    {
+      val columna = scala.io.StdIn.readInt()
+      if(validarNumero(columna)) columna
+      else 
+      {
+        println("Error al introducir el numero de columna. Por favor, introduzca un numero del 0 al 8.")
+        pedirColumna()
+      }
+    }catch 
+    {
+      case r: Exception => {
+        println("Error. Por favor, introduzca un numero del 0 al 8.")
+        pedirColumna()
+      }
+    }
+  }  
+
+  def moverBola (tablero: List[List[Char]], puntos: Int): Tuple2[List[List[Char]],Int]= {
+    println("Introduzca los datos de la bola a mover")
+    val fila1 = pedirFila()
+    val columna1 = pedirColumna()
+    val elem = getPosicion(fila1,columna1,tablero)
+    if(comprobarEleccion(fila1,columna1,tablero))
+    {
+      println("Introduzca los datos de la posicion donde la quieras poner")
+      val fila2 = pedirFila()
+      val columna2 = pedirColumna()
+      if (comprobarMovimiento(fila2,columna2,tablero))
+      {
+        val tableroAux = eliminarBolaTablero(tablero,fila1,columna1)
+        val tableroAux2 = insertarBolaTablero(tableroAux,fila2,columna2,elem)
+        val posicionesAEliminar = comprobarTablero(fila2,columna2,tableroAux2,elem,0,Nil)
+        val puntosAux = contarPuntos(posicionesAEliminar,puntos)
+        if (posicionesAEliminar==Nil)
+        {
+          val tableroAux3 = inicializarTablero(tableroAux2,3)
+          (tableroAux3,puntosAux)
+        }
+        else 
+        {
+          val tableroAux3 = eliminarPosiciones(tableroAux2,posicionesAEliminar)
+          (tableroAux3,puntosAux)
+        }
+      }else
+      {
+        println("Movimiento erroneo. Existe una bola en la posicion elegida.")
+        println("Por favor, vuelve a introducir los datos")
+        moverBola(tablero,puntos)
+      }
+    }
+    else 
+    {
+      println("Movimiento erroneo. Has seleccionado una posicion vacia.")
+      println("Por favor, vuelve a introducir los datos")
+      moverBola(tablero,puntos)
+    }
+  }
+  
+  def member(posicionesEliminadas: List[List[Int]], posicion: List[Int]): Boolean= {
+    if(posicionesEliminadas == List()) false
+    else if(posicion == posicionesEliminadas.head) true
+    else member(posicionesEliminadas.tail,posicion)
+  }
+
+  def comprobarIzq(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (columna<0) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else
+      comprobarIzq(fila,columna-1,tablero,color,cont+1)
+  }
+  
+  def comprobarDcha(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (columna>8) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else comprobarDcha(fila,columna+1,tablero,color,cont+1)
+  }
+  
+  def comprobarLineaHorizontal(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Boolean= {
+    val contIzq = comprobarIzq(fila,columna-1,tablero,color,cont)
+    val contDcha = comprobarDcha(fila,columna+1,tablero,color,cont)
+    if (contIzq+contDcha+1 >=5) true
+    else false
+  }
+  
+  def comprobarArriba(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila<0) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else comprobarArriba(fila-1,columna,tablero,color,cont+1)
+  }
+    
+  def comprobarAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila>8) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else comprobarAbajo(fila+1,columna,tablero,color,cont+1)
+  }
+
+  def comprobarLineaVertical(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Boolean= {
+    val contArriba = comprobarArriba(fila-1,columna,tablero,color,cont)
+    val contAbajo = comprobarAbajo(fila+1,columna,tablero,color,cont)
+    if (contArriba+contAbajo+1 >=5) true
+    else false
+  }
+  
+  def comprobarDiagonalDchaArriba(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila<0 || columna>8) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else
+    {
+      if (cont%2==0) comprobarDiagonalDchaArriba(fila,columna+1,tablero,color,cont+1)
+      else comprobarDiagonalDchaArriba(fila-1,columna,tablero,color,cont+1)
+    }
+  }
+  
+  def comprobarDiagonalIzqAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila>8 || columna<0) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else 
+    {
+      if (cont%2==0) comprobarDiagonalIzqAbajo(fila,columna-1,tablero,color,cont+1)
+      else comprobarDiagonalIzqAbajo(fila+1,columna,tablero,color,cont+1)
+    }
+  }
+
+  def comprobarDiagonalIzqArriba(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila<0 || columna<0) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else 
+    {
+      if (cont%2==0) comprobarDiagonalIzqArriba(fila,columna-1,tablero,color,cont+1)
+      else comprobarDiagonalIzqArriba(fila-1,columna,tablero,color,cont+1)
+    }
+  }
+
+  def comprobarDiagonalDchaAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Int= {
+    if (fila>8 || columna>8) cont
+    else if (getPosicion(fila,columna,tablero)!=color) cont
+    else 
+    {
+      if (cont%2==0) comprobarDiagonalDchaAbajo(fila,columna+1,tablero,color,cont+1)
+      else comprobarDiagonalDchaAbajo(fila+1,columna,tablero,color,cont+1)
+    }
+  }
+   
+  def comprobarDiagonalDerecha(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Boolean= {
+    val contDchaArriba = comprobarDiagonalDchaArriba(fila,columna,tablero,color,0)
+    val contIzqAbajo = comprobarDiagonalIzqAbajo(fila,columna,tablero,color,0)
+    if (contDchaArriba+contIzqAbajo-1>=5) true
+    else false
+  }
+
+  def comprobarDiagonalIzquierda(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int): Boolean= {
+    val contDchaAbajo = comprobarDiagonalDchaAbajo(fila,columna,tablero,color,0)
+    val contIzqArriba = comprobarDiagonalIzqArriba(fila,columna,tablero,color,0)
+    if (contDchaAbajo+contIzqArriba-1>=5) true
+    else false
+  }
+  
+  def eliminarIzquierda(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (columna<0) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else 
+    {
+      if (member(posicionesEliminadas,List(fila,columna))) eliminarIzquierda(fila,columna-1,tablero,color,posicionesEliminadas)
+      else eliminarIzquierda(fila,columna-1,tablero,color,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+  def eliminarDerecha(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (columna>8) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else 
+    {
+      if (member(posicionesEliminadas,List(fila,columna))) eliminarDerecha(fila,columna+1,tablero,color,posicionesEliminadas)
+      else eliminarDerecha(fila,columna+1,tablero,color,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+ 
+  def comprobarDiagonalDchaAux(fila: Int, columna: Int, tablero: List[List[Char]], color:Char): Tuple3[Boolean,Int,Int]= {
+    if (fila>8) (false,-1,-1)
+    else if (columna>8) comprobarDiagonalDchaAux(fila+1,0,tablero,color)
+    else if (getPosicion(fila,columna,tablero)!=color) comprobarDiagonalDchaAux(fila,columna+1,tablero,color)
+    else 
+    {
+      if(comprobarDiagonalDerecha(fila,columna,tablero,color,0)) (true,fila,columna)
+      else comprobarDiagonalDchaAux(fila,columna+1,tablero,color)
+    }
+  }
+  
+  def comprobarDiagonalIzqAux(fila: Int, columna: Int, tablero: List[List[Char]], color:Char): Tuple3[Boolean,Int,Int]= {
+    if (fila>8) (false,-1,-1)
+    else if (columna>8) comprobarDiagonalIzqAux(fila+1,0,tablero,color)
+    else if (getPosicion(fila,columna,tablero)!=color) comprobarDiagonalIzqAux(fila,columna+1,tablero,color)
+    else 
+    {
+      if(comprobarDiagonalIzquierda(fila,columna,tablero,color,0)) (true,fila,columna)
+      else comprobarDiagonalIzqAux(fila,columna+1,tablero,color)
+    }
+  }
+  
+  def eliminarLineaHorizontal(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    val ListaIzq = eliminarIzquierda(fila,columna,tablero,color,posicionesEliminadas)
+    val ListaDcha = eliminarDerecha(fila,columna+1,tablero,color,posicionesEliminadas)
+    ListaIzq:::ListaDcha
+  }
+  
+  def eliminarArriba(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila<0) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (member(posicionesEliminadas,List(fila,columna))) eliminarArriba(fila-1,columna,tablero,color,posicionesEliminadas)
+      else eliminarArriba(fila-1,columna,tablero,color,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+  def eliminarAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila>8) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else 
+    {
+      if (member(posicionesEliminadas,List(fila,columna))) eliminarAbajo(fila+1,columna,tablero,color,posicionesEliminadas)
+      else eliminarAbajo(fila+1,columna,tablero,color,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+  def eliminarLineaVertical(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    val ListaArriba = eliminarArriba(fila,columna,tablero,color,posicionesEliminadas)
+    val ListaAbajo = eliminarAbajo(fila+1,columna,tablero,color,posicionesEliminadas)
+    ListaArriba:::ListaAbajo
+  }
+  
+  def eliminarDiagonalDchaArriba(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila<0 || columna>8) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (cont%2==0)
+      {
+        if (member(posicionesEliminadas,List(fila,columna))) eliminarDiagonalDchaArriba(fila,columna+1,tablero,color,cont+1,posicionesEliminadas)
+        else eliminarDiagonalDchaArriba(fila,columna+1,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+      else eliminarDiagonalDchaArriba(fila-1,columna,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+  }
+  
+  def eliminarDiagonalIzqAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila>8 || columna<0) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (cont%2==0)
+      {
+        if (member(posicionesEliminadas,List(fila,columna))) eliminarDiagonalIzqAbajo(fila+1,columna,tablero,color,cont+1,posicionesEliminadas)
+        else eliminarDiagonalIzqAbajo(fila+1,columna,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+      else eliminarDiagonalIzqAbajo(fila,columna-1,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+  def eliminarDiagonalDerecha(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    val ListaDchaArriba = eliminarDiagonalDchaArriba(fila,columna,tablero,color,0,posicionesEliminadas)
+    val ListaDiagonalDerecha = eliminarDiagonalIzqAbajo(fila,columna,tablero,color,0,ListaDchaArriba)
+    ListaDiagonalDerecha
+  }
+  
+  def eliminarDiagonalIzqArriba(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila<0 || columna<0) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (cont%2==0)
+      {
+        if (member(posicionesEliminadas,List(fila,columna))) eliminarDiagonalIzqArriba(fila,columna-1,tablero,color,cont+1,posicionesEliminadas)
+        else eliminarDiagonalIzqArriba(fila,columna-1,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+      else eliminarDiagonalIzqArriba(fila-1,columna,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+
+  def eliminarDiagonalDchaAbajo(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if (fila>8 || columna>8) posicionesEliminadas
+    else if (getPosicion(fila,columna,tablero)!=color) posicionesEliminadas
+    else
+    {
+      if (cont%2==0) 
+      {
+        if (member(posicionesEliminadas,List(fila,columna))) eliminarDiagonalDchaAbajo(fila+1,columna,tablero,color,cont+1,posicionesEliminadas)
+        else eliminarDiagonalDchaAbajo(fila+1,columna,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+      }
+      else eliminarDiagonalDchaAbajo(fila,columna+1,tablero,color,cont+1,posicionesEliminadas:::List(List(fila,columna)))
+    }
+  }
+  
+  def eliminarDiagonalIzquierda(fila: Int, columna: Int, tablero: List[List[Char]], color:Char, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    val ListaDchaAbajo = eliminarDiagonalDchaAbajo(fila,columna,tablero,color,0,posicionesEliminadas)
+    val ListaDiagonalIzquierda = eliminarDiagonalIzqArriba(fila,columna,tablero,color,0,ListaDchaAbajo)
+    ListaDiagonalIzquierda
+  }
+
+  def comprobarTablero(fila: Int, columna: Int, tablero: List[List[Char]], color: Char, cont: Int, posicionesEliminadas: List[List[Int]]): List[List[Int]]= {
+    if(cont==4) posicionesEliminadas
+    else
+    {
+      if (cont==0) 
+      {
+        if (comprobarLineaHorizontal(fila,columna,tablero,color,0)) comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas:::eliminarLineaHorizontal(fila,columna,tablero,color,Nil))
+        else comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas)
+      }
+      else if (cont==1)
+      {
+        if (comprobarLineaVertical(fila,columna,tablero,color,0)) comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas:::eliminarLineaVertical(fila,columna,tablero,color,Nil))
+        else comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas)
+      }
+      else if (cont==2)
+      {
+        val diagonal = comprobarDiagonalDchaAux(0,0,tablero,color)
+        if (diagonal._1) comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas:::eliminarDiagonalDerecha(diagonal._2,diagonal._3,tablero,color,Nil))
+        else comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas)
+      }
+      else 
+      {
+        val diagonal = comprobarDiagonalIzqAux(0,0,tablero,color)
+        if (diagonal._1) comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas:::eliminarDiagonalIzquierda(diagonal._2,diagonal._3,tablero,color,Nil))
+        else comprobarTablero(fila,columna,tablero,color,cont+1,posicionesEliminadas)
+      }
+    } 
+  }
+  
+  def eliminarPosiciones(tablero: List[List[Char]], posicionesEliminadas:List[List[Int]]): List[List[Char]] = {
+    if (posicionesEliminadas == Nil) tablero
+    else 
+    {
+      val fila = posicionesEliminadas.head.head
+      val columna = posicionesEliminadas.head.tail.head
+      eliminarPosiciones(eliminarBolaTablero(tablero,fila,columna),posicionesEliminadas.tail)
+    }
+  }
+  
+  def contarPuntos(posicionesEliminadas: List[List[Int]], puntos: Int): Int= {
+    if (posicionesEliminadas == Nil) puntos
+    else 
+    {
+      val fila = posicionesEliminadas.head.head
+      val columna = posicionesEliminadas.head.tail.head
+      contarPuntos(posicionesEliminadas.tail,puntos+75)
+    }
+  }
+  
+  def numHuecosLibres(fila: Int, columna: Int, tablero: List[List[Char]], cont: Int): Int= {
+    if (fila>8) cont
+    else if (getPosicion(fila,columna,tablero)=='-')
+    {
+      if (columna!=8) numHuecosLibres(fila,columna+1,tablero,cont+1)
+      else numHuecosLibres(fila+1,0,tablero,cont+1)
+    }
+    else 
+    {
+      if (columna!=8) numHuecosLibres(fila,columna+1,tablero,cont)
+      else numHuecosLibres(fila+1,0,tablero,cont)
+    }
+  }
+  
+  def hayHuecosLibres(cont: Int): Boolean= {
+    if (cont>0) true
+    else false
+  }
+  
+  def comprobarMovimiento(fila: Int, columna: Int, tablero: List[List[Char]]): Boolean= {
+    if(getPosicion(fila,columna,tablero)!='-') false
+    else true
+  }
+
+  def comprobarEleccion(fila: Int, columna: Int, tablero: List[List[Char]]): Boolean= {
+    if(getPosicion(fila,columna,tablero)=='-') false
+    else true
+  }
+  
+  def getFecha(): String= {
+    val cal = Calendar.getInstance()
+    val date =cal.get(Calendar.DATE)
+    val Year =cal.get(Calendar.YEAR)
+    val Month1 =cal.get(Calendar.MONTH)
+    val Month = Month1+1
+    String.valueOf(date+"/"+Month+"/"+Year)
+  }
+  
+  def almacenarPuntosTxt(puntos: Int)= {
+   try 
+   {
+      val ruta = "src/puntos.txt"
+      val file = new File(ruta)
+      if (!file.exists()) {
+          file.createNewFile()
+          print("Creando file")
+      }
+      val fw = new FileWriter(file,true)
+      val bw = new BufferedWriter(fw)
+      val fecha = getFecha()
+      bw.write(fecha+" --> "+puntos.toString()+" puntos\n")
+      bw.close()
+   }catch 
+   {
+     case r: Exception => {
+       println("No se ha encontrado la ruta del archivo.")
+     }
+   }
+ } 
+  
+  def moverBolaAutomatico (fila1: Int, columna1: Int, fila2: Int, columna2: Int, tablero: List[List[Char]], puntos: Int): Int= {
+    val elem = getPosicion(fila1,columna1,tablero)
+    val tableroAux = eliminarBolaTablero(tablero,fila1,columna1)
+    val tableroAux2 = insertarBolaTablero(tableroAux,fila2,columna2,elem)
+    val posicionesAEliminar = comprobarTablero(fila2,columna2,tableroAux2,elem,0,Nil)
+    contarPuntos(posicionesAEliminar,puntos)
+  }
+  
+  def comprobarBola(fila: Int, columna: Int, fila2: Int, columna2: Int, mejorFila2: Int, mejorColumna2: Int, mejorPuntuacion: Int, tablero: List[List[Char]]): Tuple3[Int,Int,Int]= {
+    if (fila2>8) (mejorFila2,mejorColumna2,mejorPuntuacion)
+    else if (columna2>8)  comprobarBola(fila,columna,fila2+1,0,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    else if (getPosicion(fila2,columna2,tablero)!='-') comprobarBola(fila,columna,fila2,columna2+1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    else 
+    {
+      val puntos = moverBolaAutomatico(fila,columna,fila2,columna2,tablero,0)
+      if (puntos>mejorPuntuacion) comprobarBola(fila,columna,fila2,columna2+1,fila2,columna2,puntos,tablero)
+      else comprobarBola(fila,columna,fila2,columna2+1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    }
+  }
+  
+  def mejorFilaColumna(fila: Int, columna: Int, mejorFila1: Int, mejorColumna1: Int, mejorFila2: Int, mejorColumna2: Int, mejorPuntuacion: Int, tablero: List[List[Char]]): Tuple4[Int,Int,Int,Int]= {
+    if (fila>8) (mejorFila1,mejorColumna1,mejorFila2,mejorColumna2)
+    else if (columna>8) mejorFilaColumna(fila+1,0,mejorFila1,mejorColumna1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    else if (getPosicion(fila,columna,tablero)=='-') mejorFilaColumna(fila,columna+1,mejorFila1,mejorColumna1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    else 
+    {
+      val movimiento = comprobarBola(fila,columna,0,0,mejorFila2,mejorColumna2,-1,tablero)
+      if (movimiento._3>mejorPuntuacion) mejorFilaColumna(fila,columna+1,fila,columna,movimiento._1,movimiento._2,movimiento._3,tablero)
+      else mejorFilaColumna(fila,columna+1,mejorFila1,mejorColumna1,mejorFila2,mejorColumna2,mejorPuntuacion,tablero)
+    }
+  }
+  
+  def jugar(tablero: List[List[Char]], puntos: Int) {
+    if(hayHuecosLibres(numHuecosLibres(0,0,tablero,0)))
+    {
+      val movAutomatico = mejorFilaColumna(0,0,-1,-1,-1,-1,-1,tablero)
+      val tableroAux = insertarBolaTablero(tablero,movAutomatico._3,movAutomatico._4,'X')
+      imprimirTablero(0,0,tableroAux)
+      print("El mejor movimiento es mover la bola de la posicion ("+movAutomatico._1+","+movAutomatico._2+")")
+      println(" a la posicion ("+movAutomatico._3+","+movAutomatico._4+")\n")
+      val mover = moverBola(tablero,puntos)
+      val tableroAux2 = mover._1
+      val puntosAux = mover._2
+      println("PUNTOS JUGADOR : "+puntosAux)
+      jugar(tableroAux2,puntosAux)
+    }
+    else 
+    {
+      almacenarPuntosTxt(puntos)
+      print("Game Over")
+    }
+  }  
+}
